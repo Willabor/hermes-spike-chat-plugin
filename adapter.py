@@ -202,7 +202,39 @@ def _build_adapter(config: PlatformConfig) -> SpikeChatAdapter:
 
 
 def _is_connected(config) -> bool:
-    return bool((config.extra or {}).get("url") or True)
+    extra = config.extra or {}
+    return bool(extra.get("url") and extra.get("member"))
+
+
+def _env_enablement() -> Optional[dict]:
+    """Seed PlatformConfig.extra from env vars during gateway config load.
+
+    Called BEFORE adapter construction so env-only setups surface in
+    `gateway status` / get_connected_platforms() without instantiating.
+    Returns None when not minimally configured (caller skips auto-enable).
+    Keys go into PlatformConfig.extra; the special `home_channel` key
+    becomes a HomeChannel on the PlatformConfig.
+    """
+    url = os.getenv("SPIKE_CHAT_URL", "").strip()
+    member = os.getenv("SPIKE_CHAT_MEMBER", "").strip()
+    if not (url and member):
+        return None
+    seed: dict = {
+        "url": url,
+        "member": member,
+        "project": os.getenv("SPIKE_CHAT_PROJECT", "online-operations").strip(),
+        "channel": os.getenv("SPIKE_CHAT_CHANNEL", "order-ops").strip(),
+        "role": os.getenv("SPIKE_CHAT_ROLE", "").strip(),
+    }
+    poll = os.getenv("SPIKE_CHAT_POLL_SECONDS", "").strip()
+    if poll:
+        try:
+            seed["poll_seconds"] = float(poll)
+        except ValueError:
+            pass
+    home = seed["channel"] or "order-ops"
+    seed["home_channel"] = {"chat_id": home, "name": home}
+    return seed
 
 
 def register(ctx) -> None:
@@ -215,6 +247,10 @@ def register(ctx) -> None:
         is_connected=_is_connected,
         required_env=[],
         install_hint="pip install aiohttp",
+        # Env-driven config: SPIKE_CHAT_URL + SPIKE_CHAT_MEMBER (+ PROJECT,
+        # CHANNEL, ROLE, POLL_SECONDS) seed PlatformConfig.extra, so the
+        # platform enables without a built-in Platform enum value.
+        env_enablement_fn=_env_enablement,
         max_message_length=SpikeChatAdapter.MAX_MESSAGE_LENGTH,
         emoji="\U0001F4AC",
         allow_update_command=True,
