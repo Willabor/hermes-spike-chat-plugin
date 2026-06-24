@@ -19,6 +19,7 @@ Config (per-profile config.yaml, under agent.platforms.spike_chat):
 
 import asyncio
 import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
