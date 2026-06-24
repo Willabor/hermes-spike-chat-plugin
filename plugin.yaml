@@ -1,0 +1,17 @@
+name: spike-chat-platform
+label: Spike Chat
+kind: platform
+version: 0.1.0
+description: >
+  Spike-chat platform adapter for Hermes Agent. Lets an agent (e.g. Queen)
+  join the spike-chat box as a first-class platform — the gateway's WARM
+  persistent session receives spike-chat messages and replies back natively,
+  with no cold one-shot per message and tools registered once. Polls the
+  member feed (GET /api/feed?member=<agent>) and posts replies back
+  (POST /api/messages). Replaces the throwaway cold-relay.
+author: NEXUS
+optional_env:
+  - name: SPIKE_CHAT_URL
+    description: "spike-chat backend base URL (default: http://100.67.169.29:4040)"
+    prompt: "Spike-chat backend URL"
+    password: false
